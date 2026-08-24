@@ -6,3 +6,6 @@ langchain-anthropic
 python-dotenv
 beautifulsoup4
 pyyaml
+pytest
+pytest-html
+langsmith[pytest]

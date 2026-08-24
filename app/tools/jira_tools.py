@@ -535,7 +535,7 @@ def update_jira_issue(
             "issue_key": issue_key,
             "message": "Jira issue updated successfully",
             "updated_fields": list(fields.keys()),
-            "issue_url": f"{JIRA_BASE_URL}/browse/{issue_key}"
+            "issue_url": f"{JIRA_API_BASE_URL}/browse/{issue_key}"
         }
         return result
 

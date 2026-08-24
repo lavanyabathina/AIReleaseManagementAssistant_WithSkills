@@ -129,6 +129,66 @@ def search_confluence_page(
         "error": f"Confluence API request failed: {str(e)}"
         }
 
+def find_confluence_page_by_title(space_key: str, title: str) -> Optional[dict]:
+    """
+    Look up a Confluence page by its exact title within a space.
+
+    Internal helper, deliberately not exposed to the agent as a tool.
+
+    Uses the content API's exact title filter rather than a CQL search.
+    CQL 'text ~' is a fuzzy full text match that tokenizes the query, so
+    titles containing punctuation such as '-' or '.' do not match
+    reliably. Confluence enforces unique titles per space, so an exact
+    title lookup is the correct way to ask whether a page exists.
+
+    Returns the page, or None when no page has that title.
+    """
+
+    url = f"{CONFLUENCE_API_BASE_URL}/rest/api/content"
+
+    params = {
+        "spaceKey": space_key,
+        "title": title,
+        "type": "page",
+        "limit": 1
+    }
+
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            auth=(CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN),
+            headers={
+                "Accept": "application/json"
+            },
+            timeout=30
+        )
+
+        response.raise_for_status()
+
+    except requests.exceptions.RequestException as e:
+        print(f"  title lookup failed: {e}")
+        return None
+
+    results = response.json().get("results", [])
+
+    print(f"  title lookup returned {len(results)} page(s)")
+
+    if not results:
+        return None
+
+    page = results[0]
+
+    return {
+        "page_id": page.get("id"),
+        "title": page.get("title"),
+        "url": (
+            CONFLUENCE_API_BASE_URL
+            + page.get("_links", {}).get("webui", "")
+        )
+    }
+
+
 def get_confluence_space_name_by_id(space_id: str) -> Optional[str]:
     """
     Look up a Confluence space name from its space ID.

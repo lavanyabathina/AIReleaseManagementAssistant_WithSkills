@@ -1,12 +1,11 @@
 from app.inputs.certification_input import get_certification_request
-from app.prompts.release_planning_prompt import release_planning_prompt
-from app.utils.load_config import load_config
-from app.llm.llm_factory import *
+from app.agents.certification_agent import (
+    run_certification,
+    DuplicateCertificationError,
+)
 from dotenv import load_dotenv
 from app.tools.confluence_tools import *
 from app.tools.jira_tools import *
-from langchain.agents import create_agent
-from langchain_core.messages import AIMessage
 import sys
 import os
 
@@ -100,75 +99,24 @@ def test_tools():
 
 
 def run_certification_agent():
-    print ("Loading .env file")
+    print("Loading .env file")
     load_dotenv()
-    print("Loading config files.")
-    application_config = load_config('app/config/application_config.yaml');
+
     request = get_certification_request()
 
     # Convert Pydantic model to a json compatible dictionary
-    request_data = request.model_dump(mode="json")
     print("\nCertification Request:")
-    print(request_data)
+    print(request.model_dump(mode="json"))
 
-    model = get_llm(application_config)
-    
-    # Define tools for the agent
-    tools = [
-        search_confluence_page,
-        get_confluence_page_content,
-        get_confluence_space_details,
-        create_confluence_page,
-        update_confluence_page,
-        get_jira_fields,
-        get_jira_issue,
-        get_jira_user,
-        create_jira_issue,
-        link_jira_issue,
-        update_jira_issue,
-        add_jira_comment
-    ]
-    
-    messages = release_planning_prompt.format_messages(
-    certification_request=request_data
-)
+    try:
+        response = run_certification(request)
+    except DuplicateCertificationError as error:
+        print(f"\n{error}")
+        return None
 
-    agent = create_agent(
-     model=model,
-     tools=tools
-    )
+    response.print_report()
 
-    result = agent.invoke({
-        "messages": messages
-    })
-
-   
-
-    print("\n==============================")
-    print("AGENT ACTIONS")
-    print("==============================")
-
-    for message in result["messages"]:
-
-        # Agent deciding to call a tool
-        if hasattr(message, "tool_calls") and message.tool_calls:
-            for call in message.tool_calls:
-                print(f"\nAction: {call['name']}")
-                print(f"Arguments: {call['args']}")
-
-        # Output returned by the tool
-        elif message.__class__.__name__ == "ToolMessage":
-            print(f"Tool Output: {message.content}")
-
-    print("\n==============================")
-    print("FINAL AGENT OUTPUT")
-    print("==============================")
-
-    # Print only the final AI response
-    for message in reversed(result["messages"]):
-        if isinstance(message, AIMessage) and message.content:
-            print(message.content)
-            break
+    return response
 
 if __name__ == "__main__":
     
