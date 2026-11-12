@@ -10,7 +10,12 @@ def cert_args(**overrides):
         "start_date": "2026-08-13",
         "end_date": "2026-09-13",
     }
+    print("BEFORE UPDATE:", args["confluence_space"])
+    print("OVERRIDES:", overrides)
+
     args.update(overrides)
+    print("AFTER UPDATE:", args["confluence_space"])
+
     return args
 
 

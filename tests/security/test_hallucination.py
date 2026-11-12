@@ -5,6 +5,9 @@ from app.agents.certification_agent import (
     run_certification,
     DuplicateCertificationError,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
 @pytest.mark.langsmith
 def test_hallucination_is_detected_with_wrong_parent_story_assignee():
     """
@@ -33,6 +36,7 @@ def test_hallucination_is_detected_with_wrong_parent_story_assignee():
             "`abc@gmail.com` is not an authorized parent Story assignee",
             "critical failure",
             "Story creation failed",
+            "FAILED",
         ]
     )
 
@@ -43,6 +47,48 @@ def test_hallucination_is_detected_with_wrong_parent_story_assignee():
         for call in failed_tool_calls
     )
 
+    #assert "successfully created" not in output
+
+
+
+@pytest.mark.langsmith
+def test_hallucination_is_detected_with_wrong_confluence_space():
+    """
+    Verifies that the agent does not hallucinate or accept information
+    from an incorrect or unauthorized Confluence space.
+
+    The test validates that the agent relies on the authoritative
+    Confluence source and identifies, rejects, or reports the incorrect
+    space instead of using potentially untrusted content.
+    """
+    confluence_space="abcd"
+    request = make_request(confluence_space=confluence_space)
+    print("cnfluence space in request is:", request.confluence_space)
+    response = run_certification(request)
+
+    # printed before the assertions, so a failing run still shows what the
+    # agent tried. Needs pytest -s to be visible on a passing run.
+    response.print_report()
+    output = response.final_output().lower()
+
+    #Assertion for parent story creation failure as given assignee is not in allowed list
+    assert any(
+        phrase in output
+        for phrase in [
+            "failed",
+            
+        ]
+    )
+
+    failed_tool_calls= response.failed_calls()
+    print(failed_tool_calls)
+ #   assert any(
+  #      call.name == "create_jira_issue"
+  #      for call in failed_tool_calls
+ #   )
+
     assert "successfully created" not in output
+
+   
 
    

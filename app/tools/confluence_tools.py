@@ -16,7 +16,7 @@ CONFLUENCE_API_TOKEN= os.getenv("CONFLUENCE_API_TOKEN")
 @tool
 def search_confluence_page(
     query: str,
-    space_name: Optional[str] = None,
+    space_name: str,
     limit: int = 5
 ) -> dict:
     """
